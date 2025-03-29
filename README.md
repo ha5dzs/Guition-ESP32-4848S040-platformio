@@ -10,12 +10,24 @@ I wrote this as I found and solved problems. There is no structure to speak of, 
 * Custom header file for driving hardware
 * Touch panel and screen now can be rotated together
 
+## What is on the board
+
+* Expressif ESP32-S3-N16R8
+* Goodix GT911 on the capacitive touch panel
+* 480x480 IPS screen, using the ST7701 controller. Configuration is via SPI, wired for 16-bit parallel load
+* USB is directly wired to a CH340 chip, so no fancy USB stuff here
+* IP5306 for battery management - no direct control from the ESP32 module, but the secret button on the side is wired to it
+* Some boost converter for the backlight LEDs I couldn't find the datasheet of
+* NS4168 I²S DAC and apparently a 2.5W Class-D amplifier (smoorez would say that's a good SPERKER)
+* Relays are switched though J3Y NPN transistors
+* The UART RX and TX on the P1 and H1 headers are connected together
+* RST and BOOT buttons are hidden inside the back panel - you won't really need them, the CH340's RTS and DTR pins are wired to them too
+
 ## Environment set-up
 
 The IO pins are defined in `src/Guition_ESP32_4848S040.h`. The device on board is an ESP32-S3-N16R8, so it has 16 MB (Quiad SPI) Flash, and 8 MB (Octal SPI) PSRAM.
 
-
-The `platformio.ini` is so far:
+The `platformio.ini` is slightly customised so that the appropriate amount of memory is selected
 
 ```ini
 [env:Guition_ESP32_4848S040]
@@ -39,7 +51,7 @@ lib_deps =
     https://github.com/tamctec/gt911-arduino
 ```
 
-In `Setup()`, the available SPI RAM (PSRAM) the very first thing it prints:
+In `Setup()`, the available SPI RAM (PSRAM) is the very first thing it prints:
 
 ```C
  // Serial port
@@ -363,3 +375,7 @@ void your_fancy_function(whatever_input_arguments);
 }
 #endif
 ```
+
+## Evidence
+
+![cat](docs/cat.jpg)
