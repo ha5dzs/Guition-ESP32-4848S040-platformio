@@ -1,10 +1,12 @@
 # Guition ESP32-4848S040 PlatformIO project
 
-This is not like the included examples, these use the latest Arduino GFX (1.5.6) and slightly more recent LVGL (8.4.0) libraries. I am doing this because I got frustrated that everyone seem to use the older ones, knowing that there are breaking changes in the newer versions. I did this so I can use this as a skeleton for my projects.
+This is not like the included examples, these use the latest Arduino GFX (1.5.6) and slightly more recent LVGL (8.4.0) libraries. I am doing this because I got frustrated that everyone seem to use the older libraries and the code was a mess. Also, there are breaking changes in the newer versions, which should at least be tested. I did this so I can use this as a skeleton for my projects.
+
+I wrote this as I found and solved problems. There is no structure to speak of, it is merely a sequence of what broke when.
 
 ## Key differences
 
-* Uses Arduino core on PlatformIO
+* Uses Arduino framework on PlatformIO
 * Custom header file for driving hardware
 * Touch panel and screen now can be rotated together
 
@@ -100,7 +102,9 @@ lib_deps=
 
 Generally speaking, there are a number of prerequisites to use LVGL.
 
-### The *tick callback function* that is executed periodically. To me, this seems to works:
+### The *tick callback function* that is executed periodically.
+
+To me, this seems to work, and I don't have to put anything in `Loop()`:
 
 ```C
 #include <Ticker.h>
@@ -135,7 +139,7 @@ Storing a 480x480 display in 16-bit colour depth needs about 450 kB of memory, w
 
 To access this RAM, one needs to allocate this with `heap_caps_malloc( <x_number_of_bytes>), MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT);`
 
-lvgl 8 also needs a `display_driver` pointer, which is used to configure where is where.
+lvgl 8 also needs a `display_driver` pointer, which is used to configure where is where. It also turned out that the entire screen does NOT need to be re-drawn all the time. So probably in lvgl 9, one could use `LV_DISPLAY_RENDER_MODE_PARTIAL` instead of `LV_DISPLAY_RENDER_MODE_DIRECT`
 
 ```C
 #include <lvgl.h>
@@ -165,7 +169,7 @@ void Setup()
   display_driver.hor_res = TFT_WIDTH;
   display_driver.ver_res = TFT_HEIGHT;
   display_driver.flush_cb = my_disp_flush; // Assign callback for display update
-  display_driver.full_refresh = 1; // Always redraw the entire screen.
+  display_driver.full_refresh = 0; // Always redraw the entire screen.
   display_driver.draw_buf = &draw_buffer; // The memory address where the draw buffer begins
 
   // Finally, register this display
@@ -240,7 +244,7 @@ void my_disp_flush(lv_display_t* disp, const lv_area_t* area, uint8_t* frame_dat
 
 ### Some input device
 
-In this case, the Guition ESP32-4848S040 board has a GT911 touch panel on the screen. The rotations no not correspond, and as of LVGL 8.4.0, there is no multitouch support. LVGL 9 does support gestures though.
+In this case, the Guition ESP32-4848S040 board has a GT911 touch panel on the screen. The rotations do not correspond, and as of LVGL 8.4.0, there is no multitouch support. LVGL 9 does support gestures though.
 
 In `platformio.ini`, add the library:
 

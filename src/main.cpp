@@ -158,8 +158,7 @@ void setup() {
   display_driver.hor_res = TFT_WIDTH;
   display_driver.ver_res = TFT_HEIGHT;
   display_driver.flush_cb = my_disp_flush; // Assign callback for display update
-  //display_driver.full_refresh = 1; // Always redraw the entire screen.
-  display_driver.full_refresh = 0;
+  display_driver.full_refresh = 0; // Always redraw the entire screen. This makes it slower
   display_driver.draw_buf = &draw_buffer; // The memory address where the draw buffer begins
 
   // Finally, register this display
