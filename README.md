@@ -37,7 +37,7 @@ lib_deps =
     https://github.com/tamctec/gt911-arduino
 ```
 
-In `Setup()`, I checked the available SPI RAM (PSRAM) the very first things:
+In `Setup()`, the available SPI RAM (PSRAM) the very first thing it prints:
 
 ```C
  // Serial port
