@@ -94,7 +94,7 @@
 
 #define TFT_WIDTH 480
 #define TFT_HEIGHT 480
-#define ROTATION 2
+#define ROTATION 0
 
 #define TFT_16BIT_BGR_FORMAT true
 // I am assuming that timings are in nanoseconds

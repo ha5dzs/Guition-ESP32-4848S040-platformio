@@ -7,6 +7,25 @@
 #include <TAMC_GT911.h>
 #include <esp_heap_caps.h> // to be able to use the SPIRAM (aka PSRAM)
 #include "keyboard_example_scene.h"
+#include <WiFi.h>
+#include <WifiAP.h>
+#include <time.h>
+#include "wifi_specifics.h"
+
+/*
+ * Global variables go here
+*/
+// Wifi specific stuff.
+char wifi_ssid_to_connect[32];
+char wifi_password_to_connect[32];
+uint8_t wifi_need_to_connect = 0; // 0 don't connect, everything else, connect.
+char wifi_ap_ssid[32] = "Suspiciously open WiFi network";
+char wifi_ap_password[32] = "passw"; // A valid password must have at least 7 characters.
+TaskHandle_t wifi_task_handle = NULL;
+uint8_t we_have_accurate_time = 0;
+time_t now;
+tm posixtime;
+
 
 // Make sure you add -DLV_CONF_INCLUDE_SIMPLE to build_flags section in platformio.ini too if you are gettng errors about missing lv_conf.
 //#define LV_CONF_INCLUDE_SIMPLE
@@ -47,6 +66,7 @@ Ticker ticker;
 static lv_disp_draw_buf_t draw_buffer;
 static lv_color_t *frame_buffer;
 static lv_disp_drv_t display_driver;
+static lv_disp_t *display_object; // An all-in-one object.
 
 // Display updater function
 void my_disp_flush(lv_disp_drv_t *disp, const lv_area_t *area, lv_color_t *color_p)
@@ -162,7 +182,7 @@ void setup() {
   display_driver.draw_buf = &draw_buffer; // The memory address where the draw buffer begins
 
   // Finally, register this display
-  lv_disp_drv_register(&display_driver);
+  display_object = lv_disp_drv_register(&display_driver);
 
 
   // Initialise the touch panel driver
@@ -173,13 +193,19 @@ void setup() {
   lv_indev_drv_register(&indev_drv);
 
 
+  // Wifi.
+  WiFi.mode(WIFI_STA); //Can be WIFI_AP and WIFI_AP_STA
+  WiFi.disconnect(); // Just in case.
+
   // Print something
-  lv_obj_t *label = lv_label_create( lv_scr_act() );
-  lv_label_set_text( label, "LVGL V" GFX_STR(LVGL_VERSION_MAJOR) "." GFX_STR(LVGL_VERSION_MINOR) "." GFX_STR(LVGL_VERSION_PATCH));
-  lv_obj_align( label, LV_ALIGN_CENTER, 0, -20 );
+  //lv_obj_t *label = lv_label_create( lv_scr_act() );
+  //lv_label_set_text( label, "LVGL V" GFX_STR(LVGL_VERSION_MAJOR) "." GFX_STR(LVGL_VERSION_MINOR) "." GFX_STR(LVGL_VERSION_PATCH));
+  //lv_obj_align( label, LV_ALIGN_CENTER, 0, -20 );
 
   // Straight from the examples: https://docs.lvgl.io/8.4/examples.html?highlight=keyboard
-  lv_example_keyboard_1();
+  //lv_example_keyboard_1();
+
+  ssid_input_screen();
 
 }
 
