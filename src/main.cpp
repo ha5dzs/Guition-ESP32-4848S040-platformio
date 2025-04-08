@@ -90,6 +90,14 @@ void ticker_call_function(void)
   lv_task_handler();
 }
 
+// Clear screen function.
+void clear_screen(void)
+{
+  // We 'clear' the screen, by adding a large object.
+  lv_obj_t *background = lv_obj_create(lv_scr_act());
+  lv_obj_set_size(background, TFT_WIDTH, TFT_HEIGHT);
+  lv_obj_align(background, LV_ALIGN_CENTER, 0, 0);
+}
 
 // Touch panel callback function. LVGL 8.4.0 does not support multitouch.
 void my_input_read(lv_indev_drv_t *indev_driver, lv_indev_data_t *data)
@@ -133,7 +141,7 @@ void setup() {
   digitalWrite(RELAY2, LOW);
   digitalWrite(RELAY3, LOW);
   #else
-  // I2S. Not implemented yet, let the next victin know.
+  // I2S. Not implemented yet, let the next victim know.
   #pragma message("Looks like you want to use I2S in this board. See Guition_ESP32_4848S040.h, or the hardware documentation.")
   #endif
 
@@ -202,10 +210,13 @@ void setup() {
   //lv_label_set_text( label, "LVGL V" GFX_STR(LVGL_VERSION_MAJOR) "." GFX_STR(LVGL_VERSION_MINOR) "." GFX_STR(LVGL_VERSION_PATCH));
   //lv_obj_align( label, LV_ALIGN_CENTER, 0, -20 );
 
+
+
+  wifi_start_screen();
+
+  //clear_screen();
   // Straight from the examples: https://docs.lvgl.io/8.4/examples.html?highlight=keyboard
   //lv_example_keyboard_1();
-
-  ssid_input_screen();
 
 }
 
