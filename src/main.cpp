@@ -18,6 +18,7 @@
 // Wifi specific stuff.
 char wifi_ssid_to_connect[32];
 char wifi_password_to_connect[32];
+char wifi_ap_list[20*20] = { 0 }; /*20 APs, 20 characters in length.*/
 uint8_t wifi_need_to_connect = 0; // 0 don't connect, everything else, connect.
 char wifi_ap_ssid[32] = "Suspiciously open WiFi network";
 char wifi_ap_password[32] = "passw"; // A valid password must have at least 7 characters.
@@ -213,6 +214,7 @@ void setup() {
 
 
   wifi_start_screen();
+  //wifi_scan_for_aps();
 
   //clear_screen();
   // Straight from the examples: https://docs.lvgl.io/8.4/examples.html?highlight=keyboard
