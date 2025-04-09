@@ -275,14 +275,6 @@ void wifi_start_screen(void)
 
 }
 
-
-static void wifi_scan_screen_draw_post_end_callback_function(lv_event_t *e)
-{
-  // Once we got here, the drawing has finished, so we can do the deed.
-  Serial.println("Drawing finished, now scanning.");
-  wifi_scan_for_aps();
-}
-
 void wifi_scan_screen(void)
 {
 
@@ -301,8 +293,6 @@ void wifi_scan_screen(void)
   lv_obj_set_style_text_font(scanning_label, &lv_font_montserrat_14, LV_PART_ANY);
   lv_label_set_text(scanning_label, "Scanning for APs...");
   lv_obj_align(scanning_label, LV_ALIGN_CENTER, 0, 0);
-
-  wifi_ap_list_screen();
 }
 
 void wifi_ap_list_screen(void)
