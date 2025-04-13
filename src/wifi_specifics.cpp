@@ -1,11 +1,15 @@
 #include "wifi_specifics.h"
 #include <lvgl.h>
+#include <Arduino.h>
 #include "lv_conf.h"
 #include <Wifi.h>
 #include <WifiAP.h>
 #include <esp_sntp.h>
 #include "Guition_ESP32_4848S040.h"
-
+// Some C++ madness.
+#include <iostream>
+#include <sstream>
+#include <string>
 /*
  * Global variables
 */
@@ -13,6 +17,8 @@
 extern char wifi_ssid_to_connect[32];
 extern char wifi_password_to_connect[32];
 extern char wifi_ap_list[20*20];
+extern int no_of_wifi_networks;
+extern uint8_t wifi_selected_network_index;
 extern uint8_t wifi_need_to_connect;
 extern char wifi_ap_ssid;
 extern char wifi_ap_password;
@@ -24,49 +30,12 @@ extern tm posixtime;
  * Local variables
 */
 
-int no_of_wifi_networks = 0;
+
 sntp_sync_status_t time_sync_status; // This is for checking the ntp status.
 // GUI elements. As simple as it can be.
 lv_obj_t *screen_title; // This is accessible from other functions
 
 
-
-
-// Shamelessly stolen from: https://github.com/xpress-embedo/ESP32/blob/master/ConnectToWiFi/src/main.cpp
-void wifi_scan_for_aps(void)
-{
-  String ssid_name;
-  Serial.println("Start Scanning");
-  int n = WiFi.scanNetworks();
-  Serial.println("Scanning Done");
-  if( n == 0 )
-  {
-    Serial.println("No Networks Found");
-  }
-  else
-  {
-    // I am restricting n to max WIFI_MAX_SSID (=20) value
-    n = n <= 20 ? n : 20;
-    for (int i = 0; i < n; i++)
-    {
-      if( i == 0 )
-      {
-        ssid_name = WiFi.SSID(i);
-      }
-      else
-      {
-        ssid_name = ssid_name + WiFi.SSID(i);
-      }
-      ssid_name = ssid_name + '\n';
-      delay(10);
-    }
-    // clear the array, it might be possible that we coming after rescanning
-    memset( wifi_ap_list, 0x00, sizeof(wifi_ap_list) );
-    strcpy( wifi_ap_list, ssid_name.c_str() );
-    Serial.println(wifi_ap_list);
-  }
-  Serial.println("Scanning Completed");
-}
 
 /*
  * This is heavily inspired by: https://github.com/pangcrd/LVGL_Bassic-tutorial/tree/main/CYD_WiFiLoginForm/src
@@ -164,12 +133,33 @@ static void wifi_scan_button_callback_function(lv_event_t *e)
     // If we got here, we clicked the button.
     Serial.println("Scan button was pressed.");
 
-    wifi_scan_screen();
+    wifi_ap_list_screen();
 
   } else if (event_code == LV_EVENT_RELEASED)
   {
-    wifi_scan_for_aps();
-    wifi_ap_list_screen();
+    Serial.println("Start scanning.");
+    //WiFi.scanNetworks(true); // This is the blocking one. There is an async way of doing it, but this is enough for now.
+
+    while(WiFi.scanComplete() == -1)
+    {
+      vTaskDelay(1000);
+      // -1: Still scanning
+      // -2: Scan failed.
+      Serial.printf("WiFi.scanComplete says: %d\n", WiFi.scanComplete());
+    }
+
+    if(no_of_wifi_networks > 0)
+    {
+      Serial.printf("Found %d networks.\n", no_of_wifi_networks);
+      wifi_ap_list_screen();
+    }
+    else
+    {
+      // If it's neither positive or -1, then it must have failed. Try restarting it.
+      Serial.println("Wifi scan failed, error code -2");
+      no_of_wifi_networks = WiFi.scanNetworks();
+      wifi_ap_list_screen();
+    }
   }
 }
 
@@ -275,24 +265,28 @@ void wifi_start_screen(void)
 
 }
 
-void wifi_scan_screen(void)
+
+static void wifi_list_callback_function(lv_event_t *e)
 {
+  lv_event_code_t event_code = lv_event_get_code(e);
+  uint8_t *wifi_network_number =(uint8_t *) lv_event_get_user_data(e);
+  lv_obj_t *selected_entry = lv_event_get_target(e);
 
-  // We 'clear' the screen, by adding a large object.
-  lv_obj_t *background = lv_obj_create(lv_scr_act());
-  lv_obj_set_size(background, TFT_WIDTH, TFT_HEIGHT);
-  lv_obj_align(background, LV_ALIGN_CENTER, 0, 0);
+  if(event_code == LV_EVENT_CLICKED)
+  {
+    // If we got here, update wifi_ssid_to_connect with lb_list_get_btn_text
+    Serial.printf("Selected network is: %s\n", WiFi.SSID(*wifi_network_number));
+    wifi_selected_network_index = *wifi_network_number;
 
-  // Label, on the top
-  screen_title = lv_label_create(lv_scr_act());
-  lv_label_set_text(screen_title, "wifi_scan_screen()");
-  lv_obj_align(screen_title, LV_ALIGN_TOP_MID, 0, TFT_HEIGHT/100);
+    // Turn the text red.
+    //lv_obj_set_style_text_color(selected_entry, (lv_color_t)lv_color_make(255, 0, 0), 0);
+  }
+  else
+  {
+    // Black text.
+    //lv_obj_set_style_text_color(selected_entry, (lv_color_t)lv_color_make(0, 0, 0), 0);
+  }
 
-  // Put out a 'Scanning...' label, but don't scan yet :D
-  lv_obj_t *scanning_label = lv_label_create(lv_scr_act());
-  lv_obj_set_style_text_font(scanning_label, &lv_font_montserrat_14, LV_PART_ANY);
-  lv_label_set_text(scanning_label, "Scanning for APs...");
-  lv_obj_align(scanning_label, LV_ALIGN_CENTER, 0, 0);
 }
 
 void wifi_ap_list_screen(void)
@@ -308,21 +302,77 @@ void wifi_ap_list_screen(void)
   lv_label_set_text(screen_title, "wifi_ap_list_screen()");
   lv_obj_align(screen_title, LV_ALIGN_TOP_MID, 0, TFT_HEIGHT/100);
 
+  // Label, on the top
+  lv_obj_t *selected_network = lv_obj_create(lv_scr_act());
+  selected_network = lv_label_create(lv_scr_act());
+  lv_label_set_text(selected_network, "wifi_ap_list_screen()");
+  lv_obj_align(screen_title, LV_ALIGN_TOP_MID, 0, TFT_HEIGHT/100);
+
+
+  // List of wifi APs.
+  lv_obj_t *wifi_network_list = lv_list_create(lv_scr_act());
+  lv_obj_set_size(wifi_network_list, TFT_WIDTH, TFT_HEIGHT-(TFT_HEIGHT/5));
+  lv_obj_align(wifi_network_list, LV_ALIGN_CENTER, 0, 0);
+  lv_list_add_text(wifi_network_list, "Access points detected:" );
+
+  // Populate the list
+  uint8_t i = 0;
+  lv_obj_t *list_button;
+  for( i = 0; i < no_of_wifi_networks; i++)
+  {
+    // Populate the list with what we found.
+    list_button = lv_list_add_btn(wifi_network_list, LV_SYMBOL_WIFI, WiFi.SSID(i).c_str());
+    lv_obj_align(list_button, LV_ALIGN_CENTER, 0, 0);
+    lv_obj_add_event_cb(list_button, wifi_list_callback_function, LV_EVENT_ALL, &i); // Add the callback, user data is the ssid in sequence.
+  }
+
+
+
+
+
+
+
+
+
   // Connect button
   lv_obj_t *connect_button = lv_btn_create(lv_scr_act());
   lv_obj_set_size(connect_button, TFT_WIDTH/3, TFT_HEIGHT/8);
   lv_obj_align(connect_button, LV_ALIGN_BOTTOM_RIGHT, -TFT_WIDTH/100, -TFT_HEIGHT/100);
-  // Skip button: Add icon
+  // Connect button: Add icon
   lv_obj_t *connect_button_icon = lv_label_create(connect_button);
   lv_label_set_text(connect_button_icon, LV_SYMBOL_WIFI);
-  lv_obj_align(connect_button_icon, LV_ALIGN_LEFT_MID, 0, 0);
-  // Skip button: Add label
+  lv_obj_align(connect_button_icon, LV_ALIGN_RIGHT_MID, 0, 0);
+  // Connect button: Add label
   lv_obj_t *connect_button_label = lv_label_create(connect_button); // This also assigns the label as the button's child
   lv_label_set_text(connect_button_label, "Connect");
   lv_obj_center(connect_button_label);
   // Skip button: callback function
   //lv_obj_add_event_cb(connect_button, wifi_connect_button_callback_function, LV_EVENT_CLICKED, NULL);
 
+  // Skip button
+  lv_obj_t *skip_button = lv_btn_create(lv_scr_act());
+  lv_obj_set_size(skip_button, TFT_WIDTH/3-TFT_WIDTH/25, TFT_HEIGHT/8);
+  lv_obj_align(skip_button, LV_ALIGN_BOTTOM_MID, 0, -TFT_HEIGHT/100);
+  // Skip button: Add label
+  lv_obj_t *skip_button_label = lv_label_create(skip_button); // This also assigns the label as the button's child
+  lv_label_set_text(skip_button_label, "Stay offline");
+  lv_obj_center(skip_button_label);
+  // Skip button: callback function
+  //lv_obj_add_event_cb(connect_button, wifi_connect_button_callback_function, LV_EVENT_CLICKED, NULL);
 
+  // Back button
+  lv_obj_t *back_button = lv_btn_create(lv_scr_act());
+  lv_obj_set_size(back_button, TFT_WIDTH/3, TFT_HEIGHT/8);
+  lv_obj_align(back_button, LV_ALIGN_BOTTOM_LEFT, TFT_WIDTH/100, -TFT_HEIGHT/100);
+  // Connect button: Add icon
+  lv_obj_t *back_button_icon = lv_label_create(back_button);
+  lv_label_set_text(back_button_icon, LV_SYMBOL_CLOSE);
+  lv_obj_align(back_button_icon, LV_ALIGN_LEFT_MID, 0, 0);
+  // Connect button: Add label
+  lv_obj_t *back_button_label = lv_label_create(back_button); // This also assigns the label as the button's child
+  lv_label_set_text(back_button_label, "Back");
+  lv_obj_center(back_button_label);
+  // Skip button: callback function
+  //lv_obj_add_event_cb(connect_button, wifi_connect_button_callback_function, LV_EVENT_CLICKED, NULL);
 
 }

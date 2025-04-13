@@ -18,7 +18,8 @@
 // Wifi specific stuff.
 char wifi_ssid_to_connect[32];
 char wifi_password_to_connect[32];
-char wifi_ap_list[20*20] = { 0 }; /*20 APs, 20 characters in length.*/
+int no_of_wifi_networks = 0; // We use this as a scan status indicator.
+uint8_t wifi_selected_network_index = 255;
 uint8_t wifi_need_to_connect = 0; // 0 don't connect, everything else, connect.
 char wifi_ap_ssid[32] = "Suspiciously open WiFi network";
 char wifi_ap_password[32] = "passw"; // A valid password must have at least 7 characters.
@@ -146,6 +147,14 @@ void setup() {
   #pragma message("Looks like you want to use I2S in this board. See Guition_ESP32_4848S040.h, or the hardware documentation.")
   #endif
 
+  // Wifi.
+  WiFi.mode(WIFI_STA); // Start as client
+  vTaskDelay(100); // Delay a bit for the other code to handle the adapter
+  no_of_wifi_networks = WiFi.scanNetworks();
+
+
+
+
   // Display hardware
   tft->begin();
   // Test: Throw some pixels out to check that the low-level stuff works.
@@ -205,6 +214,8 @@ void setup() {
   // Wifi.
   WiFi.mode(WIFI_STA); //Can be WIFI_AP and WIFI_AP_STA
   WiFi.disconnect(); // Just in case.
+  vTaskDelay(1000);
+
 
   // Print something
   //lv_obj_t *label = lv_label_create( lv_scr_act() );
