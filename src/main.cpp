@@ -10,7 +10,9 @@
 #include <WiFi.h>
 #include <WifiAP.h>
 #include <time.h>
-#include "wifi_specifics.h"
+// Each screen is moved to a separate file, so the screen and their callback functions are together.
+#include "wifi_selector_screens/wifi_ap_list.h"
+#include "wifi_selector_screens/wifi_manual_ssid_input.h"
 
 /*
  * Global variables go here
@@ -18,7 +20,7 @@
 // Wifi specific stuff.
 char wifi_ssid_to_connect[32];
 char wifi_password_to_connect[32];
-int no_of_wifi_networks = 0; // We use this as a scan status indicator.
+int16_t no_of_wifi_networks = 0; // We use this as a scan status indicator.
 uint8_t wifi_selected_network_index = 255;
 uint8_t wifi_need_to_connect = 0; // 0 don't connect, everything else, connect.
 char wifi_ap_ssid[32] = "Suspiciously open WiFi network";
@@ -146,13 +148,10 @@ void setup() {
   // I2S. Not implemented yet, let the next victim know.
   #pragma message("Looks like you want to use I2S in this board. See Guition_ESP32_4848S040.h, or the hardware documentation.")
   #endif
-
   // Wifi.
   WiFi.mode(WIFI_STA); // Start as client
   vTaskDelay(100); // Delay a bit for the other code to handle the adapter
-  no_of_wifi_networks = WiFi.scanNetworks();
-
-
+  WiFi.scanNetworks(true); // True is Async
 
 
   // Display hardware
@@ -211,11 +210,8 @@ void setup() {
   lv_indev_drv_register(&indev_drv);
 
 
-  // Wifi.
-  WiFi.mode(WIFI_STA); //Can be WIFI_AP and WIFI_AP_STA
-  WiFi.disconnect(); // Just in case.
-  vTaskDelay(1000);
-
+  // By this time, the initial wifi scan must have produced something
+  no_of_wifi_networks = WiFi.scanComplete();
 
   // Print something
   //lv_obj_t *label = lv_label_create( lv_scr_act() );
@@ -223,8 +219,10 @@ void setup() {
   //lv_obj_align( label, LV_ALIGN_CENTER, 0, -20 );
 
 
+  wifi_ap_list_screen();
+  //wifi_manual_ssid_input_screen();
 
-  wifi_start_screen();
+  //wifi_start_screen();
   //wifi_scan_for_aps();
 
   //clear_screen();

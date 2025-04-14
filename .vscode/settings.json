@@ -1,5 +1,6 @@
 {
     "files.associations": {
-        "sstream": "cpp"
+        "sstream": "cpp",
+        "*.cpp_donotcompile": "cpp"
     }
 }
