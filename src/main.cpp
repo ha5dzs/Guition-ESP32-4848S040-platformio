@@ -229,9 +229,9 @@ void setup() {
   //lv_obj_align( label, LV_ALIGN_CENTER, 0, -20 );
 
 
-  //wifi_ap_list_screen();
+  wifi_ap_list_screen();
   //wifi_manual_ssid_input_screen();
-  wifi_password_input_screen();
+  //wifi_password_input_screen();
   //wifi_start_screen();
   //wifi_scan_for_aps();
 

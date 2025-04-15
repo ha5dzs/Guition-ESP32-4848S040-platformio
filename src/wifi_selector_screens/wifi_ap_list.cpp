@@ -76,7 +76,7 @@ static void wifi_ap_list_connect_button_callback_function(lv_event_t *e)
             {
                 // We need to get the password from a different screen.
                 Serial.println("The selected network needs a password.");
-                return; // for now.
+                wifi_password_input_screen(); // Request the password
             }
             else
             {
