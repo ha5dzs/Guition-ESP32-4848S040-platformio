@@ -18,7 +18,7 @@ extern uint8_t wifi_selected_network_index;
 // These are here so I can update these from within the callback functions too.
 lv_obj_t *screen_text_line_first;
 lv_obj_t *screen_text_line_second;
-lv_obj_t *button_connect;
+lv_obj_t *connect_button;
 
 /*
  * Callback functions
@@ -75,6 +75,7 @@ static void wifi_ap_list_connect_button_callback_function(lv_event_t *e)
             if(WiFi.encryptionType(wifi_selected_network_index) != WIFI_AUTH_OPEN)
             {
                 // We need to get the password from a different screen.
+                Serial.println("The selected network needs a password.");
                 return; // for now.
             }
             else
@@ -155,6 +156,8 @@ static void wifi_ap_list_refresh_button_callback_function(lv_event_t *e)
             //wifi_ap_list_screen(); // Call the entire GUI again
         }
 
+        // Redraw the entire screen.
+        lv_obj_invalidate(lv_scr_act());
 
     }
 }
@@ -232,45 +235,45 @@ void wifi_ap_list_screen(void)
 
 
   // Refresh button
-  lv_obj_t *button_refresh = lv_btn_create(lv_scr_act());
-  lv_obj_set_size(button_refresh, TFT_WIDTH/8, TFT_HEIGHT/8);
-  lv_obj_align(button_refresh, LV_ALIGN_TOP_RIGHT, -TFT_WIDTH/100, TFT_WIDTH/100);
+  lv_obj_t *refresh_button = lv_btn_create(lv_scr_act());
+  lv_obj_set_size(refresh_button, TFT_WIDTH/8, TFT_HEIGHT/8);
+  lv_obj_align(refresh_button, LV_ALIGN_TOP_RIGHT, -TFT_WIDTH/100, TFT_WIDTH/100);
   // Refresh button: add icon
-  lv_obj_t *button_refresh_icon = lv_label_create(button_refresh);
-  lv_label_set_text(button_refresh_icon, LV_SYMBOL_REFRESH);
-  lv_obj_align(button_refresh_icon, LV_ALIGN_CENTER, 0, 0);
+  lv_obj_t *refresh_button_icon = lv_label_create(refresh_button);
+  lv_label_set_text(refresh_button_icon, LV_SYMBOL_REFRESH);
+  lv_obj_align(refresh_button_icon, LV_ALIGN_CENTER, 0, 0);
   // Refresh button: callback function
-  lv_obj_add_event_cb(button_refresh, wifi_ap_list_refresh_button_callback_function, LV_EVENT_ALL, NULL);
+  lv_obj_add_event_cb(refresh_button, wifi_ap_list_refresh_button_callback_function, LV_EVENT_ALL, NULL);
 
 
 
 
   // Connect button
-  button_connect = lv_btn_create(lv_scr_act());
-  lv_obj_set_size(button_connect, TFT_WIDTH/3, TFT_HEIGHT/8);
-  lv_obj_align(button_connect, LV_ALIGN_BOTTOM_RIGHT, -TFT_WIDTH/100, -TFT_HEIGHT/100);
+  connect_button = lv_btn_create(lv_scr_act());
+  lv_obj_set_size(connect_button, TFT_WIDTH/3, TFT_HEIGHT/8);
+  lv_obj_align(connect_button, LV_ALIGN_BOTTOM_RIGHT, -TFT_WIDTH/100, -TFT_HEIGHT/100);
   // Connect button: Add icon
-  lv_obj_t *button_connect_icon = lv_label_create(button_connect);
-  lv_label_set_text(button_connect_icon, LV_SYMBOL_WIFI);
-  lv_obj_align(button_connect_icon, LV_ALIGN_RIGHT_MID, 0, 0);
+  lv_obj_t *connect_button_icon = lv_label_create(connect_button);
+  lv_label_set_text(connect_button_icon, LV_SYMBOL_WIFI);
+  lv_obj_align(connect_button_icon, LV_ALIGN_RIGHT_MID, 0, 0);
   // Connect button: Add label
-  lv_obj_t *button_connect_label = lv_label_create(button_connect); // This also assigns the label as the button's child
-  lv_label_set_text(button_connect_label, "Connect");
-  lv_obj_center(button_connect_label);
+  lv_obj_t *connect_button_label = lv_label_create(connect_button); // This also assigns the label as the button's child
+  lv_label_set_text(connect_button_label, "Connect");
+  lv_obj_center(connect_button_label);
   // Connect button: callback function
-  lv_obj_add_event_cb(button_connect, wifi_ap_list_connect_button_callback_function, LV_EVENT_ALL, NULL);
+  lv_obj_add_event_cb(connect_button, wifi_ap_list_connect_button_callback_function, LV_EVENT_ALL, NULL);
 
   // Manual entry button
-  lv_obj_t *button_manual_entry = lv_btn_create(lv_scr_act());
-  lv_obj_set_size(button_manual_entry, TFT_WIDTH/3-TFT_WIDTH/25, TFT_HEIGHT/8);
-  lv_obj_align(button_manual_entry, LV_ALIGN_BOTTOM_MID, 0, -TFT_HEIGHT/100);
-  lv_obj_set_style_bg_color(button_manual_entry, (lv_color_t)lv_color_make(128, 64, 64), 0);
+  lv_obj_t *manual_entry_button = lv_btn_create(lv_scr_act());
+  lv_obj_set_size(manual_entry_button, TFT_WIDTH/3-TFT_WIDTH/25, TFT_HEIGHT/8);
+  lv_obj_align(manual_entry_button, LV_ALIGN_BOTTOM_MID, 0, -TFT_HEIGHT/100);
+  lv_obj_set_style_bg_color(manual_entry_button, (lv_color_t)lv_color_make(128, 64, 64), 0);
   // Manual entry button: Add label
-  lv_obj_t *button_manual_entry_label = lv_label_create(button_manual_entry); // This also assigns the label as the button's child
-  lv_label_set_text(button_manual_entry_label, "Manual entry");
-  lv_obj_center(button_manual_entry_label);
+  lv_obj_t *manual_entry_button_label = lv_label_create(manual_entry_button); // This also assigns the label as the button's child
+  lv_label_set_text(manual_entry_button_label, "Manual entry");
+  lv_obj_center(manual_entry_button_label);
   // Skip button: callback function
-  lv_obj_add_event_cb(button_manual_entry, wifi_ap_list_manual_entry_button_callback_function, LV_EVENT_ALL, NULL);
+  lv_obj_add_event_cb(manual_entry_button, wifi_ap_list_manual_entry_button_callback_function, LV_EVENT_ALL, NULL);
 
   // Stay offline button
   lv_obj_t *button_stay_offline = lv_btn_create(lv_scr_act());

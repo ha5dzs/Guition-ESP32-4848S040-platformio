@@ -75,11 +75,19 @@ static void wifi_ssid_manual_ssid_input_input_field_callback_function(lv_event_t
 static void wifi_ssid_manual_ssid_input_keyboard_callback_function(lv_event_t *e)
 {
   lv_event_code_t event_code = lv_event_get_code(e);
+  lv_obj_t *keyboard_object = lv_event_get_target(e);
+  uint16_t currently_pressed_key = lv_btnmatrix_get_selected_btn(keyboard_object);
+  // Start the connection if the tick button, or the enter key was pressed.
   if(event_code == LV_EVENT_READY)
   {
     Serial.println("OK was pressed.");
     Serial.println(wifi_ssid_to_connect);
-  }
+  } /*else if( (event_code == LV_EVENT_VALUE_CHANGED) && (currently_pressed_key == 22) ) // 22 is the enter key in the button matrix
+  {
+
+    Serial.println("Enter key was pressed.");
+    Serial.println(wifi_ssid_to_connect);
+  }*/
   else if (event_code == LV_EVENT_CANCEL)
   {
     Serial.println("The 'keyboard close' button was pressed.");

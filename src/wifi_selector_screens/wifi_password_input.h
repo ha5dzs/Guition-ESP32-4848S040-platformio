@@ -7,7 +7,7 @@ extern "C" {
  * Only the externally accessible function is declared here, the internal callback functions are not.
 */
 
-
+void wifi_password_input_screen(void);
 
 #ifdef __cplusplus
 }

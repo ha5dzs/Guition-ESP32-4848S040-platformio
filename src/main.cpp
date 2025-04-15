@@ -10,9 +10,19 @@
 #include <WiFi.h>
 #include <WifiAP.h>
 #include <time.h>
-// Each screen is moved to a separate file, so the screen and their callback functions are together.
-#include "wifi_selector_screens/wifi_ap_list.h"
-#include "wifi_selector_screens/wifi_manual_ssid_input.h"
+/*
+ * Each screen is moved to a separate file wit their header files,
+ * But, there is also a summarised header file too.
+ * If you add to this, then have the following structure:
+ * |
+ * |-wifi_selector_screens
+ * >-[my_fancy_code.c] which is where you do the work
+ * >-[my_fancy_code.h] which shows the globally accessible functions
+ * ...and add #iinclude "wifi_selector_screens/my_fancy_code.h" to:
+ * wifi_selector_screens/wifi_selector_screens.h
+ */
+#include "wifi_selector_screens/wifi_selector_screens.h"
+
 
 /*
  * Global variables go here
@@ -219,9 +229,9 @@ void setup() {
   //lv_obj_align( label, LV_ALIGN_CENTER, 0, -20 );
 
 
-  wifi_ap_list_screen();
+  //wifi_ap_list_screen();
   //wifi_manual_ssid_input_screen();
-
+  wifi_password_input_screen();
   //wifi_start_screen();
   //wifi_scan_for_aps();
 

@@ -10,6 +10,7 @@ extern "C" {
 // Add the header files here as they are ready.
 #include "wifi_ap_list.h"
 #include "wifi_manual_ssid_input.h"
+#include "wifi_password_input.h"
 
 #ifdef __cplusplus
 }
