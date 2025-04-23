@@ -2,6 +2,8 @@
 #include <Arduino.h>
 #include <lvgl.h>
 #include <WiFi.h>
+#include <esp_task_wdt.h> // ESP task watchdog.
+
 
 // This is defined in Guition_ESP32_4848S040.h, but this makes it more portable for future applications.
 #define TFT_WIDTH 480
@@ -29,10 +31,8 @@ extern char wifi_ssid_to_connect[32];
 
  void wifi_connect_screen(void)
  {
-    uint32_t then = millis();
-    uint32_t now = millis();
-    uint32_t max_retries = 10;
-    uint32_t retry_counter = 0;
+
+    esp_task_wdt_init(30, true); // Reset if hangs for more than 30 seconds
 
     // Clear screen.
     lv_obj_clean(lv_scr_act());
@@ -54,50 +54,26 @@ extern char wifi_ssid_to_connect[32];
     Serial.printf("Connecting to %s", wifi_ssid_to_connect);
     WiFi.begin(wifi_ssid_to_connect, wifi_password_to_connect);
 
-    // Since this is essentially a render loop, we can measure time.
-    if( (now - then) < 2000 && (WiFi.status() != WL_CONNECTED))
+    // Block execution?
+    while( WiFi.status() != WL_CONNECTED )
     {
-        now = millis();
+        esp_task_wdt_reset(); // Reset watchdog while we are waiting.
+        lv_label_set_text(status_label, "Connecting to:");
 
-        if(now-then > 1000)
-        {
-            lv_label_set_text(status_label, "Connecting to:");
-        }
-        else
-        {
-            lv_label_set_text(status_label, LV_SYMBOL_WIFI "Connecting to:");
-        }
         lv_obj_invalidate(status_label); // Force a redraw
 
         lv_label_set_text(info_label, wifi_ssid_to_connect);
 
     }
-    else
-    {
-        if(retry_counter <= max_retries)
-        {
-            then = now;
-            retry_counter++;
-        }
-        else
-        {
-            WiFi.disconnect();
-            Serial.println("Could not connect to wifi.");
-            lv_label_set_text(status_label, "Failed to connect to:");
-            lv_obj_invalidate(status_label); // Force a redraw
-        }
 
-    }
 
-    if(WiFi.status() == WL_CONNECTED)
-    {
-        // If we got here, we have a connection.
-        lv_label_set_text(status_label, "Connected, IP address is:");
-        lv_obj_invalidate(status_label);
-        lv_label_set_text(info_label, WiFi.localIP().toString().c_str()); // Wow this is complicated.
-        lv_obj_invalidate(info_label);
+    Serial.println("Connected.");
+    // If we got here, we have a connection.
+    lv_label_set_text(status_label, "Connected, IP address is:");
+    lv_obj_invalidate(status_label);
+    lv_label_set_text(info_label, WiFi.localIP().toString().c_str()); // Wow this is complicated.
+    lv_obj_invalidate(info_label);
 
-    }
 
 
  }

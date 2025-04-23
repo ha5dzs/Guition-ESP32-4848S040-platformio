@@ -10,6 +10,7 @@
 #include <WiFi.h>
 #include <WifiAP.h>
 #include <time.h>
+
 /*
  * Each screen is moved to a separate file wit their header files,
  * But, there is also a summarised header file too.
@@ -29,7 +30,9 @@
 */
 // Wifi specific stuff.
 char wifi_ssid_to_connect[32];
+//char wifi_ssid_to_connect[] = "Volciclab-2.4G";
 char wifi_password_to_connect[32];
+//char wifi_password_to_connect[] = "Tdfsdfsdfsdfsdfsdfasdfsadfsdfsadfsadf!";
 int16_t no_of_wifi_networks = 0; // We use this as a scan status indicator.
 uint8_t wifi_selected_network_index = 255;
 char wifi_ap_ssid[32] = "Suspiciously open WiFi network";
@@ -235,6 +238,7 @@ void setup() {
     //wifi_password_input_screen();
     //wifi_start_screen();
     //wifi_scan_for_aps();
+    //wifi_connect_screen();
 
     //clear_screen();
     // Straight from the examples: https://docs.lvgl.io/8.4/examples.html?highlight=keyboard
