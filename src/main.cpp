@@ -32,7 +32,6 @@ char wifi_ssid_to_connect[32];
 char wifi_password_to_connect[32];
 int16_t no_of_wifi_networks = 0; // We use this as a scan status indicator.
 uint8_t wifi_selected_network_index = 255;
-uint8_t wifi_need_to_connect = 0; // 0 don't connect, everything else, connect.
 char wifi_ap_ssid[32] = "Suspiciously open WiFi network";
 char wifi_ap_password[32] = "passw"; // A valid password must have at least 7 characters.
 TaskHandle_t wifi_task_handle = NULL;
@@ -133,111 +132,113 @@ void my_input_read(lv_indev_drv_t *indev_driver, lv_indev_data_t *data)
 }
 
 void setup() {
-  // Serial port
-  Serial.begin(115200);
-  Serial.printf("Available PSRAM: %d KB\n", heap_caps_get_free_size(MALLOC_CAP_SPIRAM)>>10);
-
-  // Ticker
-  ticker.attach_ms(TICKER_MS, ticker_call_function);
-
-  // Backlight
-  pinMode(TFT_BL, OUTPUT);
-  digitalWrite(TFT_BL, HIGH);
-
-  // Relays or I2S
-  #ifdef USE_RELAYS
-  // We use relays
-  pinMode(RELAY1, OUTPUT);
-  pinMode(RELAY2, OUTPUT);
-  pinMode(RELAY3, OUTPUT);
-  // All off, by default.
-  digitalWrite(RELAY1, LOW);
-  digitalWrite(RELAY2, LOW);
-  digitalWrite(RELAY3, LOW);
-  #else
-  // I2S. Not implemented yet, let the next victim know.
-  #pragma message("Looks like you want to use I2S in this board. See Guition_ESP32_4848S040.h, or the hardware documentation.")
-  #endif
-  // Wifi.
-  WiFi.mode(WIFI_STA); // Start as client
-  vTaskDelay(100); // Delay a bit for the other code to handle the adapter
-  WiFi.scanNetworks(true); // True is Async
+    // Serial port
+    Serial.begin(115200);
+    Serial.printf("Available PSRAM: %d KB\n", heap_caps_get_free_size(MALLOC_CAP_SPIRAM)>>10);
 
 
-  // Display hardware
-  tft->begin();
-  // Test: Throw some pixels out to check that the low-level stuff works.
-  tft->flush();
-  for (uint16_t x_coord = 0; x_coord < TFT_WIDTH; x_coord++)
-  {
-    for (uint16_t y_coord = 0; y_coord < TFT_HEIGHT; y_coord++)
+    // Ticker
+    ticker.attach_ms(TICKER_MS, ticker_call_function);
+
+    // Backlight
+    pinMode(TFT_BL, OUTPUT);
+    digitalWrite(TFT_BL, HIGH);
+
+    // Relays or I2S
+    #ifdef USE_RELAYS
+    // We use relays
+    pinMode(RELAY1, OUTPUT);
+    pinMode(RELAY2, OUTPUT);
+    pinMode(RELAY3, OUTPUT);
+    // All off, by default.
+    digitalWrite(RELAY1, LOW);
+    digitalWrite(RELAY2, LOW);
+    digitalWrite(RELAY3, LOW);
+    #else
+    // I2S. Not implemented yet, let the next victim know.
+    #pragma message("Looks like you want to use I2S in this board. See Guition_ESP32_4848S040.h, or the hardware documentation.")
+    #endif
+    // Wifi.
+    WiFi.mode(WIFI_STA); // Start as client
+    vTaskDelay(1000); // Delay a bit for the other code to handle the adapter
+    WiFi.setHostname("Guition_ESP32_4848S040");
+    WiFi.scanNetworks(true); // True is Async
+
+
+    // Display hardware
+    tft->begin();
+    // Test: Throw some pixels out to check that the low-level stuff works.
+    tft->flush();
+    for (uint16_t x_coord = 0; x_coord < TFT_WIDTH; x_coord++)
     {
-      // X, Y, colour. In this case, 16 bits.
-      tft -> writePixel(x_coord, y_coord, tft->color565( x_coord<<1, (x_coord + y_coord)<<2, y_coord<<1));
+        for (uint16_t y_coord = 0; y_coord < TFT_HEIGHT; y_coord++)
+        {
+            // X, Y, colour. In this case, 16 bits.
+            tft -> writePixel(x_coord, y_coord, tft->color565( x_coord<<1, (x_coord + y_coord)<<2, y_coord<<1));
+        }
     }
-  }
-  tft->flush();
+    tft->flush();
 
-  // Touch panel
-  touch_panel.begin();
-  // The display rotation is not the same as the touch panel rotation, see Guition_ESP32_4848S040.h
-  touch_panel.setRotation(TAMC_GT911_ROTATION);
-  touch_panel.setResolution(TFT_WIDTH, TFT_HEIGHT); // During initialisation, it doesn't get the right coordinates
+    // Touch panel
+    touch_panel.begin();
+    // The display rotation is not the same as the touch panel rotation, see Guition_ESP32_4848S040.h
+    touch_panel.setRotation(TAMC_GT911_ROTATION);
+    touch_panel.setResolution(TFT_WIDTH, TFT_HEIGHT); // During initialisation, it doesn't get the right coordinates
 
-  //Start LVGL
-  lv_init(); // Start the dance
+    //Start LVGL
+    lv_init(); // Start the dance
 
-  // Initialise an entire frame's buffer in the SPI RAM
-  frame_buffer = (lv_color_t *)heap_caps_malloc(sizeof(lv_color_t) * TFT_WIDTH * TFT_HEIGHT, MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT);
+    // Initialise an entire frame's buffer in the SPI RAM
+    frame_buffer = (lv_color_t *)heap_caps_malloc(sizeof(lv_color_t) * TFT_WIDTH * TFT_HEIGHT, MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT);
 
-  // If the PSRAM is not initialised, this should fail. 480x480x2=460800 -> 450 kB
-  if(frame_buffer == NULL)
-  {
-  Serial.println("Unable to allocate memory for the frame buffer. Do you have enough PSRAM?\n");
-  while(1);
-  }
+    // If the PSRAM is not initialised, this should fail. 480x480x2=460800 -> 450 kB
+    if(frame_buffer == NULL)
+    {
+        Serial.println("Unable to allocate memory for the frame buffer. Do you have enough PSRAM?\n");
+        while(1);
+    }
 
-  // Initialise draw buffer, and assign it to the frame buffer.
-  lv_disp_draw_buf_init(&draw_buffer, frame_buffer, NULL, TFT_WIDTH * TFT_HEIGHT);
+    // Initialise draw buffer, and assign it to the frame buffer.
+    lv_disp_draw_buf_init(&draw_buffer, frame_buffer, NULL, TFT_WIDTH * TFT_HEIGHT);
 
-  // Initialise the display driver, and set some basic details.
-  lv_disp_drv_init(&display_driver);
-  display_driver.hor_res = TFT_WIDTH;
-  display_driver.ver_res = TFT_HEIGHT;
-  display_driver.flush_cb = my_disp_flush; // Assign callback for display update
-  display_driver.full_refresh = 0; // Always redraw the entire screen. This makes it slower
-  display_driver.draw_buf = &draw_buffer; // The memory address where the draw buffer begins
+    // Initialise the display driver, and set some basic details.
+    lv_disp_drv_init(&display_driver);
+    display_driver.hor_res = TFT_WIDTH;
+    display_driver.ver_res = TFT_HEIGHT;
+    display_driver.flush_cb = my_disp_flush; // Assign callback for display update
+    display_driver.full_refresh = 0; // Always redraw the entire screen. This makes it slower
+    display_driver.draw_buf = &draw_buffer; // The memory address where the draw buffer begins
 
-  // Finally, register this display
-  display_object = lv_disp_drv_register(&display_driver);
-
-
-  // Initialise the touch panel driver
-  static lv_indev_drv_t indev_drv;
-  lv_indev_drv_init(&indev_drv);
-  indev_drv.type = LV_INDEV_TYPE_POINTER; // No multitouch :()
-  indev_drv.read_cb = my_input_read; // This is where we read the touch controller
-  lv_indev_drv_register(&indev_drv);
+    // Finally, register this display
+    display_object = lv_disp_drv_register(&display_driver);
 
 
-  // By this time, the initial wifi scan must have produced something
-  no_of_wifi_networks = WiFi.scanComplete();
+    // Initialise the touch panel driver
+    static lv_indev_drv_t indev_drv;
+    lv_indev_drv_init(&indev_drv);
+    indev_drv.type = LV_INDEV_TYPE_POINTER; // No multitouch :()
+    indev_drv.read_cb = my_input_read; // This is where we read the touch controller
+    lv_indev_drv_register(&indev_drv);
 
-  // Print something
-  //lv_obj_t *label = lv_label_create( lv_scr_act() );
-  //lv_label_set_text( label, "LVGL V" GFX_STR(LVGL_VERSION_MAJOR) "." GFX_STR(LVGL_VERSION_MINOR) "." GFX_STR(LVGL_VERSION_PATCH));
-  //lv_obj_align( label, LV_ALIGN_CENTER, 0, -20 );
+
+    // By this time, the initial wifi scan must have produced something
+    no_of_wifi_networks = WiFi.scanComplete();
+
+    // Print something
+    //lv_obj_t *label = lv_label_create( lv_scr_act() );
+    //lv_label_set_text( label, "LVGL V" GFX_STR(LVGL_VERSION_MAJOR) "." GFX_STR(LVGL_VERSION_MINOR) "." GFX_STR(LVGL_VERSION_PATCH));
+    //lv_obj_align( label, LV_ALIGN_CENTER, 0, -20 );
 
 
-  wifi_ap_list_screen();
-  //wifi_manual_ssid_input_screen();
-  //wifi_password_input_screen();
-  //wifi_start_screen();
-  //wifi_scan_for_aps();
+    wifi_ap_list_screen();
+    //wifi_manual_ssid_input_screen();
+    //wifi_password_input_screen();
+    //wifi_start_screen();
+    //wifi_scan_for_aps();
 
-  //clear_screen();
-  // Straight from the examples: https://docs.lvgl.io/8.4/examples.html?highlight=keyboard
-  //lv_example_keyboard_1();
+    //clear_screen();
+    // Straight from the examples: https://docs.lvgl.io/8.4/examples.html?highlight=keyboard
+    //lv_example_keyboard_1();
 
 }
 

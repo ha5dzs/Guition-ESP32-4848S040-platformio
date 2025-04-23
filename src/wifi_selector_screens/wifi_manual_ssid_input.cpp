@@ -82,6 +82,10 @@ static void wifi_ssid_manual_ssid_input_keyboard_callback_function(lv_event_t *e
     {
         Serial.println("OK was pressed.");
         Serial.println(wifi_ssid_to_connect);
+
+        // Now we will ask for the password.
+        wifi_password_input_screen();
+
     } /*else if( (event_code == LV_EVENT_VALUE_CHANGED) && (currently_pressed_key == 22) ) // 22 is the enter key in the button matrix
     {
 
@@ -155,10 +159,11 @@ void wifi_manual_ssid_input_screen(void)
 
     // Some text in the middle.
     lv_obj_t *nice_guidance_label = lv_label_create(lv_scr_act());
-    lv_obj_align(nice_guidance_label, LV_ALIGN_TOP_MID, 0, TFT_HEIGHT/3);
-    //lv_label_set_long_mode(nice_guidance_label, LV_LABEL_LONG_SCROLL_CIRCULAR);
-    lv_obj_set_size(nice_guidance_label, TFT_WIDTH-TFT_WIDTH/50, TFT_HEIGHT/20);
+    lv_obj_align(nice_guidance_label, LV_ALIGN_CENTER, 0, -TFT_HEIGHT/5+TFT_HEIGHT/20);
+    //lv_label_set_long_mode(nice_guidance_label, LV_LABEL_LONG_SCROLL_CIRCULAR); // Scrolling.
+    //lv_obj_set_size(nice_guidance_label, TFT_WIDTH-TFT_WIDTH/50, TFT_HEIGHT/20); // If you use scrolling, set the dimensions manually.
     lv_label_set_text(nice_guidance_label, "Enter SSID. Press " LV_SYMBOL_OK " when done.");
+
 
     // SSID field
     lv_obj_t *ssid_input_field = lv_textarea_create(lv_scr_act());
