@@ -120,7 +120,7 @@ To me, this seems to work, and I don't have to put anything in `Loop()`:
 
 ```C
 #include <Ticker.h>
-#includ <lvlg.h>
+#includ <lvgl.h>
 
 #define TICKER_MS 5
 
