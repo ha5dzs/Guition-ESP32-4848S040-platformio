@@ -7,11 +7,7 @@ extern "C" {
  * Only the externally accessible function is declared here, the internal callback functions are not.
 */
 
-// Add the header files here as they are ready.
-#include "wifi_ap_list.h"
-#include "wifi_manual_ssid_input.h"
-#include "wifi_password_input.h"
-#include "wifi_connect_screen.h"
+void wifi_connect_screen(void);
 
 #ifdef __cplusplus
 }

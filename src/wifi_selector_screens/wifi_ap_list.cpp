@@ -38,15 +38,48 @@ static void wifi_ap_list_list_callback_function(lv_event_t *e)
 
   if(event_code == LV_EVENT_CLICKED)
   {
-    // If we got here, update wifi_ssid_to_connect with lb_list_get_btn_text
-    Serial.printf("User data value is: %d\n", user_data);
-    Serial.printf("Converted pointer value is: %d\n", wifi_selected_network_index);
-    Serial.printf("Selected network is: %s\n", WiFi.SSID(wifi_selected_network_index));
+    Serial.printf( "Selected network's encryption type is: %d\n", WiFi.encryptionType(wifi_selected_network_index) );
+    if(WiFi.encryptionType(wifi_selected_network_index) == WIFI_AUTH_WPA2_ENTERPRISE)
+    {
+        /*
+         * For this authentication method, we may need additional stuff such as
+         * - Username
+         * - Anonymous username (talk about an oximoron, huh?)
+         * - Some certificate file
+         * ...so let's not faff on with this.
+        */
+       String new_second_line_text = "This network (" + WiFi.SSID(wifi_selected_network_index) + ") has unsupported encryption.";
+        lv_label_set_text(screen_text_line_second, new_second_line_text.c_str());
+        lv_obj_invalidate(screen_text_line_second); //Force a redraw
 
-    // Update the second line
-    String new_second_line_text = "Selected network is: " + WiFi.SSID(wifi_selected_network_index);
-    lv_label_set_text(screen_text_line_second, new_second_line_text.c_str());
-    lv_obj_invalidate(screen_text_line_second); //Force a redraw
+        // Gray out the button
+        lv_obj_set_style_bg_color(connect_button, (lv_color_t)lv_color_make(64, 64, 64), 0);
+        // Disable the button.
+        lv_obj_clear_flag(connect_button, LV_OBJ_FLAG_CLICKABLE);
+        // Force a redraw
+        lv_obj_invalidate(connect_button);
+
+
+    }
+    else
+    {
+        // If we got here, update wifi_ssid_to_connect with lb_list_get_btn_text
+        Serial.printf("User data value is: %d\n", user_data);
+        Serial.printf("Converted pointer value is: %d\n", wifi_selected_network_index);
+        Serial.printf("Selected network is: %s\n", WiFi.SSID(wifi_selected_network_index));
+
+        // Update the second line
+        String new_second_line_text = "Selected network is: " + WiFi.SSID(wifi_selected_network_index);
+        lv_label_set_text(screen_text_line_second, new_second_line_text.c_str());
+        lv_obj_invalidate(screen_text_line_second); //Force a redraw
+
+        // Make the connect button go green.
+        lv_obj_set_style_bg_color(connect_button, (lv_color_t)lv_color_make(0, 128, 0), 0);
+        // Enable the button
+        lv_obj_add_flag(connect_button, LV_OBJ_FLAG_CLICKABLE);
+        // Force a redraw
+        lv_obj_invalidate(connect_button);
+    }
 
 
   }
@@ -57,7 +90,7 @@ static void wifi_ap_list_list_callback_function(lv_event_t *e)
 
 }
 
-static void wifi_ap_list_connect_button_callback_function(lv_event_t *e)
+void wifi_ap_list_connect_button_callback_function(lv_event_t *e)
 {
     lv_event_code_t event_code = lv_event_get_code(e);
     if(event_code == LV_EVENT_CLICKED)
@@ -80,8 +113,8 @@ static void wifi_ap_list_connect_button_callback_function(lv_event_t *e)
             }
             else
             {
-                // We can go ahead and connect
-                return; // for now.
+                // We can go ahead and connect, no encryption used.
+                wifi_connect_screen();
             }
         }
     }
@@ -213,22 +246,27 @@ void wifi_ap_list_screen(void)
   lv_obj_set_size(wifi_network_list, TFT_WIDTH, TFT_HEIGHT-(TFT_HEIGHT/5)-(TFT_HEIGHT/10));
   lv_obj_align(wifi_network_list, LV_ALIGN_CENTER, 0, 0);
   lv_list_add_text(wifi_network_list, "Access points detected:" );
+
   // Populate the list
   uint8_t i = 0;
+  //lv_obj_clean(wifi_network_list); // clear the list
   for( i = 0; i < no_of_wifi_networks; i++)
   {
     String list_button_text = (String)WiFi.SSID(i) + " " + LV_SYMBOL_LEFT + (String)WiFi.RSSI(i) + " dBm, heard on Channel " + (String)WiFi.channel(i);
     // Populate the list with what we found.
     lv_obj_t *list_button = lv_list_add_btn(wifi_network_list, LV_SYMBOL_WIFI, list_button_text.c_str());
+    // Disable networks with WIFI_AUTH_ENTERPRISE in the list
+
     lv_obj_align(list_button, LV_ALIGN_CENTER, 0, 0);
     /*
-     * A bit of explanation here
-     * In the list, the user data to be transferred is the index as per WiFi.SSID(index)
-     * The function expects a pointer. In this case, it's the value, cast as a pointer.
-     * This is apparently fixed in newer LVGL versions.
-     * See: https://forum.lvgl.io/t/passing-user-data-to-lv-obj-add-event-cb/6739/5
+    * A bit of explanation here
+    * In the list, the user data to be transferred is the index as per WiFi.SSID(index)
+    * The function expects a pointer. In this case, it's the value, cast as a pointer.
+    * This is apparently fixed in newer LVGL versions.
+    * See: https://forum.lvgl.io/t/passing-user-data-to-lv-obj-add-event-cb/6739/5
     */
     lv_obj_add_event_cb(list_button, wifi_ap_list_list_callback_function, LV_EVENT_ALL, (void *)i);
+
   }
 
 
