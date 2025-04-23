@@ -375,6 +375,23 @@ void your_fancy_function(whatever_input_arguments);
 }
 #endif
 ```
+### The wifi selector screens
+
+Since this board does not have an external real-time clock with a backup battery and I don't plan to use a rechargeable battery with it at all, I made a couple of wifi-specific GUI screens that scan for the wifi networks, connects to one of your choice, and then synchronises time. From `main.cpp`, at the end of setup(), the entry point is ˙wifi_ap_list_screen()˙. If you don't need anything like this, just comment that line out.
+
+While I am learning LVGL myself here, I went through several iterations of the code. I decided that I split each screen with its callback functions to separate files. Each file has one publicly available function to call, which is the GUI screen.
+
+These are:
+
+* `src/wifi_selector_screens/...`
+  * `wifi_selector_screens.h` which just includes all the header files.
+  * `wifi_ap_list.*` includes the scanning and listing of access points
+  * `wifi_manual_ssid_input.*` includes a manual entry for the SSID (if, say, it's not in the list because it's hidden)
+  * `wifi_password_input.*` is used when the selected network needs a password
+  * `wifi_connect_screen.*` is used when all the relevant data is gathered and connection takes place.
+
+Note that nothing is saved to flash, so once the ESP device resets, you will have to enter these details again. For now.
+
 
 ## Evidence
 
