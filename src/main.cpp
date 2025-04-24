@@ -45,7 +45,7 @@ tm posixtime;
 
 // Make sure you add -DLV_CONF_INCLUDE_SIMPLE to build_flags section in platformio.ini too if you are gettng errors about missing lv_conf.
 //#define LV_CONF_INCLUDE_SIMPLE
-#define TICKER_MS 5
+#define TICKER_MS 10
 
 // Software SPI
 Arduino_DataBus *sw_spi_bus = new Arduino_SWSPI( GFX_NOT_DEFINED /* DC pin */, TFT_CS /* CS pin of display*/, TFT_SCK /* Clock */, TFT_SDA /* MOSI */, GFX_NOT_DEFINED /* Data in */);
@@ -143,6 +143,8 @@ void setup() {
     // Ticker
     ticker.attach_ms(TICKER_MS, ticker_call_function);
 
+
+
     // Backlight
     pinMode(TFT_BL, OUTPUT);
     digitalWrite(TFT_BL, HIGH);
@@ -233,7 +235,7 @@ void setup() {
     //lv_obj_align( label, LV_ALIGN_CENTER, 0, -20 );
 
 
-    wifi_ap_list_screen();
+    //wifi_ap_list_screen();
     //wifi_manual_ssid_input_screen();
     //wifi_password_input_screen();
     //wifi_start_screen();

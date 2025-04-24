@@ -122,7 +122,7 @@ To me, this seems to work, and I don't have to put anything in `Loop()`:
 #include <Ticker.h>
 #includ <lvgl.h>
 
-#define TICKER_MS 5
+#define TICKER_MS 10
 
 // Ticker
 Ticker ticker;
@@ -392,6 +392,15 @@ These are:
 
 Note that nothing is saved to flash, so once the ESP device resets, you will have to enter these details again. For now.
 
+Update: Well, this wifi AP list is not really stable. I keep getting the following error:
+
+```
+Guru Meditation Error: Core  0 panic'ed (LoadProhibited). Exception was unhandled.
+```
+
+Unfortunately this board doesn't use the USB for USB, so I only have the serial port to debug. If I had option to look into this with JTAG, I would.
+
+So for now, I commented out the wifi selector screens (it's still in the code and compiles), but I commented out calling it from the main code. Instead, I'll use an SD-card-based solution.
 
 ## Evidence
 
