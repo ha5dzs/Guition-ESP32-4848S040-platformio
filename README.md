@@ -25,7 +25,7 @@ I wrote this as I found and solved problems. There is no structure to speak of, 
 
 ## Environment set-up
 
-The IO pins are defined in `src/Guition_ESP32_4848S040.h`. The device on board is an ESP32-S3-N16R8, so it has 16 MB (Quiad SPI) Flash, and 8 MB (Octal SPI) PSRAM.
+The IO pins are defined in `src/Guition_ESP32_4848S040.h`. The device on board is an ESP32-S3-N16R8, so it has 16 MB (Quad SPI) Flash, and 8 MB (Octal SPI) PSRAM.
 
 The `platformio.ini` is slightly customised so that the appropriate amount of memory is selected
 
