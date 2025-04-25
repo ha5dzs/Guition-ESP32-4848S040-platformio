@@ -61,7 +61,7 @@ Serial.printf("Available PSRAM: %d KB\n", heap_caps_get_free_size(MALLOC_CAP_SPI
 
 ## Display
 
-Even if the datasheet and the schematic says it's loaded in parallel, the control parts are over SPI. For some reason, I only could get it to work with Software SPI, which may cause problems with the SD card later-on.
+Even if the datasheet and the schematic says it's loaded in parallel, the control parts are over SPI. ~~For some reason, I only could get it to work with Software SPI, which may cause problems with the SD card later-on.~~ Hardware SPI now works. I left both in the code.
 
 The code so far:
 

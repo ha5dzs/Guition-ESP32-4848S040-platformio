@@ -10,34 +10,21 @@
 #include <WiFi.h>
 #include <WifiAP.h>
 #include <time.h>
-
-/*
- * Each screen is moved to a separate file wit their header files,
- * But, there is also a summarised header file too.
- * If you add to this, then have the following structure:
- * |
- * |-wifi_selector_screens
- * >-[my_fancy_code.c] which is where you do the work
- * >-[my_fancy_code.h] which shows the globally accessible functions
- * ...and add #iinclude "wifi_selector_screens/my_fancy_code.h" to:
- * wifi_selector_screens/wifi_selector_screens.h
- */
-#include "wifi_selector_screens/wifi_selector_screens.h"
-
+#include <SPI.h>
+#include <FS.h>
+#include <SD.h> // SD card is wired up for SPI mode. It will be slow, but that's OK
 
 /*
  * Global variables go here
 */
 // Wifi specific stuff.
 char wifi_ssid_to_connect[32];
-//char wifi_ssid_to_connect[] = "Volciclab-2.4G";
 char wifi_password_to_connect[32];
-//char wifi_password_to_connect[] = "Tdfsdfsdfsdfsdfsdfasdfsadfsdfsadfsadf!";
-int16_t no_of_wifi_networks = 0; // We use this as a scan status indicator.
+
 uint8_t wifi_selected_network_index = 255;
-char wifi_ap_ssid[32] = "Suspiciously open WiFi network";
-char wifi_ap_password[32] = "passw"; // A valid password must have at least 7 characters.
-TaskHandle_t wifi_task_handle = NULL;
+char wifi_ap_ssid[32];
+char wifi_ap_password[32];
+
 uint8_t we_have_accurate_time = 0;
 time_t now;
 tm posixtime;
@@ -47,8 +34,11 @@ tm posixtime;
 //#define LV_CONF_INCLUDE_SIMPLE
 #define TICKER_MS 10
 
+// Hardware SPI
+Arduino_DataBus *hw_spi_bus = new Arduino_HWSPI(  GFX_NOT_DEFINED, TFT_CS );
+
 // Software SPI
-Arduino_DataBus *sw_spi_bus = new Arduino_SWSPI( GFX_NOT_DEFINED /* DC pin */, TFT_CS /* CS pin of display*/, TFT_SCK /* Clock */, TFT_SDA /* MOSI */, GFX_NOT_DEFINED /* Data in */);
+//Arduino_DataBus *sw_spi_bus = new Arduino_SWSPI( GFX_NOT_DEFINED /* DC pin */, TFT_CS /* CS pin of display*/, TFT_SCK /* Clock */, TFT_SDA /* MOSI */, GFX_NOT_DEFINED /* Data in */);
 
 // Display hardware definition. The display data is loaded in parallel ST7701.
 Arduino_ESP32RGBPanel *rgbpanel = new Arduino_ESP32RGBPanel(
@@ -63,11 +53,20 @@ Arduino_ESP32RGBPanel *rgbpanel = new Arduino_ESP32RGBPanel(
 
 
 // As of Adrduino_GFX 1.5.5:
+//Arduino_RGB_Display *tft = new Arduino_RGB_Display(
+//  TFT_WIDTH, TFT_HEIGHT, rgbpanel, ROTATION, TFT_AUTO_FLUSH,
+//  sw_spi_bus /* Arduino Data bus */, GFX_NOT_DEFINED /* Reset pin, internal*/,
+//  st7701_type9_init_operations, sizeof(st7701_type9_init_operations)
+//);
+
 Arduino_RGB_Display *tft = new Arduino_RGB_Display(
-  TFT_WIDTH, TFT_HEIGHT, rgbpanel, ROTATION, TFT_AUTO_FLUSH,
-  sw_spi_bus /* Arduino Data bus */, GFX_NOT_DEFINED /* Reset pin, internal*/,
-  st7701_type9_init_operations, sizeof(st7701_type9_init_operations)
-);
+    TFT_WIDTH, TFT_HEIGHT, rgbpanel, ROTATION, TFT_AUTO_FLUSH,
+    hw_spi_bus /* Arduino Data bus */, GFX_NOT_DEFINED /* Reset pin, internal*/,
+    st7701_type9_init_operations, sizeof(st7701_type9_init_operations)
+  );
+
+
+
 
 // Touch object
 TAMC_GT911 touch_panel(TP_SDA, TP_SCL, TP_INT, TP_RST, TFT_WIDTH, TFT_HEIGHT);
@@ -139,11 +138,8 @@ void setup() {
     Serial.begin(115200);
     Serial.printf("Available PSRAM: %d KB\n", heap_caps_get_free_size(MALLOC_CAP_SPIRAM)>>10);
 
-
     // Ticker
     ticker.attach_ms(TICKER_MS, ticker_call_function);
-
-
 
     // Backlight
     pinMode(TFT_BL, OUTPUT);
@@ -163,12 +159,11 @@ void setup() {
     // I2S. Not implemented yet, let the next victim know.
     #pragma message("Looks like you want to use I2S in this board. See Guition_ESP32_4848S040.h, or the hardware documentation.")
     #endif
+
     // Wifi.
     WiFi.mode(WIFI_STA); // Start as client
     vTaskDelay(1000); // Delay a bit for the other code to handle the adapter
     WiFi.setHostname("Guition_ESP32_4848S040");
-    WiFi.scanNetworks(true); // True is Async
-
 
     // Display hardware
     tft->begin();
@@ -183,6 +178,13 @@ void setup() {
         }
     }
     tft->flush();
+
+    // SD card.
+    if(!SD.begin(SDCARD_CS))
+    {
+        Serial.println("Mounting SD card failed.");
+        while(1);
+    }
 
     // Touch panel
     touch_panel.begin();
@@ -229,10 +231,16 @@ void setup() {
     // By this time, the initial wifi scan must have produced something
     no_of_wifi_networks = WiFi.scanComplete();
 
+    static lv_style_t style;
+    lv_style_init(&style);
+    //lv_style_set_text_font(&style, &lv_font_montserrat_32); // See #defines in lv_conf.h 364:384
+
+
     // Print something
-    //lv_obj_t *label = lv_label_create( lv_scr_act() );
-    //lv_label_set_text( label, "LVGL V" GFX_STR(LVGL_VERSION_MAJOR) "." GFX_STR(LVGL_VERSION_MINOR) "." GFX_STR(LVGL_VERSION_PATCH));
-    //lv_obj_align( label, LV_ALIGN_CENTER, 0, -20 );
+    lv_obj_t *label = lv_label_create( lv_scr_act() );
+    lv_label_set_text( label, "LVGL V" GFX_STR(LVGL_VERSION_MAJOR) "." GFX_STR(LVGL_VERSION_MINOR) "." GFX_STR(LVGL_VERSION_PATCH));
+    lv_obj_align( label, LV_ALIGN_CENTER, 0, 0 );
+    //lv_obj_add_style(label, &style, 0);
 
 
     //wifi_ap_list_screen();
