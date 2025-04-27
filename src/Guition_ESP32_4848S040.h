@@ -44,8 +44,8 @@
 #define SDCARD_CS   42
 // The Expressif Arduino library wants SS defined. Apparently.
 #define SS SDCARD_CS
-#define SDCARD_MISO 47
-#define SDCARD_MOSI 41
+#define SDCARD_MISO 41
+#define SDCARD_MOSI 47
 #define SDCARD_SCK  48
 
 
