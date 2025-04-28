@@ -17,6 +17,7 @@ extern char wifi_password_to_connect[32];
 extern char wifi_ssid_to_connect[32];
 extern char wifi_ap_ssid[32];
 extern char wifi_ap_password[32];
+extern bool we_have_accurate_time;
 // low-level TFT access, before we use LVGL.
 extern Arduino_RGB_Display *tft;
 
@@ -294,6 +295,8 @@ void connect_to_wifi_and_sync_time(void)
     }
     else
     {
+        // If we got here, we managed to sync time.
+        we_have_accurate_time = true;
         tft->setCursor(0, cursor_position);
         // See tm structure definition: https://cplusplus.com/reference/ctime/tm/
         tft->printf("Time synced on: %02.0f/%02.0f/%d %2.0f:%2.0f:%2.0f", (float)utc_time.tm_mday, (float)utc_time.tm_mon+1, utc_time.tm_year-100, (float)utc_time.tm_hour, (float)utc_time.tm_min, (float)utc_time.tm_sec);

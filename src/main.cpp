@@ -26,7 +26,7 @@ uint8_t wifi_selected_network_index = 255;
 char wifi_ap_ssid[32];
 char wifi_ap_password[64];
 
-uint8_t we_have_accurate_time = 0;
+bool we_have_accurate_time = false;
 time_t now;
 tm posixtime;
 
