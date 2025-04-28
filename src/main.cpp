@@ -12,7 +12,7 @@
 #include <time.h>
 #include <SPI.h>
 #include <FS.h>
-#include <sd_diskio.h>
+#include "sd_card_and_wifi_operations.h" // Mostly to load in config files for settings
 #include <SD.h> // SD card is wired up for SPI mode. It will be slow, but that's OK
 
 /*
@@ -20,11 +20,11 @@
 */
 // Wifi specific stuff.
 char wifi_ssid_to_connect[32];
-char wifi_password_to_connect[32];
+char wifi_password_to_connect[64];
 int16_t no_of_wifi_networks = 0;
 uint8_t wifi_selected_network_index = 255;
 char wifi_ap_ssid[32];
-char wifi_ap_password[32];
+char wifi_ap_password[64];
 
 uint8_t we_have_accurate_time = 0;
 time_t now;
@@ -35,27 +35,13 @@ tm posixtime;
 //#define LV_CONF_INCLUDE_SIMPLE
 #define TICKER_MS 10
 
-/*
- * I think there may be a conflict between how the SPI bus is used between the display and the SD card.
- * Realistically, I only need the SPI for the display so I can configure it after power-on
- * -If I use software SPI, the hardware SPI won't work on the same pins
- * -If I use hardware SPI without the MISO pin when defining the Arduino_DataBus, the card won't work
- * -If I use hardware SPI with the MISO pin for the SD card, then the display won't get initialised
- * (presumably, because the SPI transaction checks whether data was received at all...)
- *
- * So a couple of things to try:
- * - Reconfigure SPI after display init (no luck so far)
- * - Create a separate SPI class (but the data lines are shared...)
- * - Create the software SPI, and then intentionally misconfigure it after display initialisation, then initialise hardware SPI
-*/
-
 // Hardware SPI for configuring the display.
 //Arduino_DataBus *hw_spi_bus = new Arduino_HWSPI(  GFX_NOT_DEFINED, TFT_CS );
-Arduino_DataBus *hw_spi_bus = new Arduino_HWSPI(  GFX_NOT_DEFINED, TFT_CS, TFT_SCK, TFT_SDA, SDCARD_MISO, &SPI, true );
+//Arduino_DataBus *hw_spi_bus = new Arduino_HWSPI(  GFX_NOT_DEFINED, TFT_CS, TFT_SCK, TFT_SDA, SDCARD_MISO, &SPI, true );
 
 
 // Software SPI for configuring the display
-//Arduino_DataBus *sw_spi_bus = new Arduino_SWSPI( GFX_NOT_DEFINED /* DC pin */, TFT_CS /* CS pin of display*/, TFT_SCK /* Clock */, TFT_SDA /* MOSI */, GFX_NOT_DEFINED /* Data in */);
+Arduino_DataBus *sw_spi_bus = new Arduino_SWSPI( GFX_NOT_DEFINED /* DC pin */, TFT_CS /* CS pin of display*/, TFT_SCK /* Clock */, TFT_SDA /* MOSI */, GFX_NOT_DEFINED /* Data in */);
 
 // Display hardware definition. The display data is loaded in parallel ST7701.
 Arduino_ESP32RGBPanel *rgbpanel = new Arduino_ESP32RGBPanel(
@@ -70,19 +56,17 @@ Arduino_ESP32RGBPanel *rgbpanel = new Arduino_ESP32RGBPanel(
 
 
 // As of Adrduino_GFX 1.5.5:
-//Arduino_RGB_Display *tft = new Arduino_RGB_Display(
-//  TFT_WIDTH, TFT_HEIGHT, rgbpanel, ROTATION, TFT_AUTO_FLUSH,
-//  sw_spi_bus /* Arduino Data bus */, GFX_NOT_DEFINED /* Reset pin, internal*/,
-//  st7701_type9_init_operations, sizeof(st7701_type9_init_operations)
-//);
-
 Arduino_RGB_Display *tft = new Arduino_RGB_Display(
-    TFT_WIDTH, TFT_HEIGHT, rgbpanel, ROTATION, TFT_AUTO_FLUSH,
-    hw_spi_bus /* Arduino Data bus */, GFX_NOT_DEFINED /* Reset pin, internal*/,
-    st7701_type9_init_operations, sizeof(st7701_type9_init_operations)
-  );
+  TFT_WIDTH, TFT_HEIGHT, rgbpanel, ROTATION, TFT_AUTO_FLUSH,
+  sw_spi_bus /* Arduino Data bus */, GFX_NOT_DEFINED /* Reset pin, internal*/,
+  st7701_type9_init_operations, sizeof(st7701_type9_init_operations)
+);
 
-
+//Arduino_RGB_Display *tft = new Arduino_RGB_Display(
+//    TFT_WIDTH, TFT_HEIGHT, rgbpanel, ROTATION, TFT_AUTO_FLUSH,
+//    hw_spi_bus /* Arduino Data bus */, GFX_NOT_DEFINED /* Reset pin, internal*/,
+//    st7701_type9_init_operations, sizeof(st7701_type9_init_operations)
+//  );
 
 
 // Touch object
@@ -177,9 +161,6 @@ void setup() {
     #pragma message("Looks like you want to use I2S in this board. See Guition_ESP32_4848S040.h, or the hardware documentation.")
     #endif
 
-    // SPI.
-    //SPI.begin(SDCARD_SCK, SDCARD_MISO, SDCARD_MOSI, SDCARD_CS);
-
     // Wifi.
     WiFi.mode(WIFI_STA); // Start as client
     vTaskDelay(1000); // Delay a bit for the other code to handle the adapter
@@ -199,12 +180,30 @@ void setup() {
     }
     tft->flush();
 
-    // SD card.
-    if(!SD.begin(SDCARD_CS))
-    {
-        Serial.println("Mounting SD card failed.");
-        //while(1);
-    }
+    delay(1000); // To flash the test pattern.
+
+    // Blank screen, for text.
+    tft->fillScreen(0);
+    tft->flush();
+
+    // Misconfigure the software SPI bus, so we can have access to the pins
+    *sw_spi_bus = Arduino_SWSPI( GFX_NOT_DEFINED /* DC pin */, GFX_NOT_DEFINED /* CS pin of display*/, GFX_NOT_DEFINED /* Clock */, GFX_NOT_DEFINED /* MOSI */, GFX_NOT_DEFINED /* Data in */);
+
+
+    // Hardware SPI for the card.
+    SPI.begin(SDCARD_SCK, SDCARD_MISO, SDCARD_MOSI, SDCARD_CS);
+    mount_sd_card(); // I moved this to a separate file.
+
+    // Loads the txt files and set the global variables.
+    load_files();
+
+    // If possible, sync local time
+    connect_to_wifi_and_sync_time();
+
+    // Set up the local access point
+    set_up_wifi_ap();
+
+    delay(5000); // Give time to the user to read this.
 
     // Touch panel
     touch_panel.begin();

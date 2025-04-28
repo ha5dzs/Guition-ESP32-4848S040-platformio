@@ -352,6 +352,52 @@ void Setup()
 
 ```
 
+## SD Card
+
+SD Card-specifics go here
+
+### Hardware
+
+This is a tricky one. The display is configured via SPI, but it is only wired up to accept data (MOSI pin), so it cannot read in data. When initialising the `Arduino_DataBus`, with `Arduino_HWSPI` and not setting `_miso` to `GFX_NOT_DEFINED` (i.e. -1), then the display will work. But, if I re-initialise the SPI during runtime so it would use the correct pins for the SD card, it will not work. I got 'select error' and other cryptic messages.
+
+So, a solution to this pickle was to continue with software SPI:
+```C++
+Arduino_SWSPI( GFX_NOT_DEFINED /* DC pin */, TFT_CS /* CS pin of display*/, TFT_SCK /* Clock */, TFT_SDA /* MOSI */, GFX_NOT_DEFINED /* Data in */);
+```
+
+...after the display was initialised, during runtime intentionally misconfigure it:
+
+```C++
+Arduino_SWSPI( GFX_NOT_DEFINED /* DC pin */, GFX_NOT_DEFINED /* CS pin of display*/, GFX_NOT_DEFINED /* Clock */, GFX_NOT_DEFINED /* MOSI */, GFX_NOT_DEFINED /* Data in */);
+```
+
+...so that I can get access to the pins with the hardware SPI and through that, the SD card, like so:
+
+```C++
+// SPI.
+    SPI.begin(SDCARD_SCK, SDCARD_MISO, SDCARD_MOSI, SDCARD_CS);
+    // SD card.
+    if(!SD.begin(SDCARD_CS))
+    {
+        Serial.println("Mounting SD card failed.");
+    }
+
+```
+
+(There was also an additional typo in `Guition_ESP32_4848S040.h`, where I accidentally swapped the MOSI and MISO pins. It is resolved now.)
+
+This SD library only supports FAT32, so cards larger than 32 GB are not recommended. I do have a 64GB SD card that works, when formatted as FAT32, but not all cards and OSs support this.
+
+### Software
+
+The cpp file `sd_card_and_wifi_operations` along with its header file contains funcions that mount the SD card, load certain simple plain-text config files, syncrhonises time using NTP in case there is an available network, and then set up a wifi access point that can be used for other hosts.
+
+See `src/files_to_be_copied_to_sdcard/*.txt` for the files. All of them are stored in plain text, and do not add a newline character to the end.
+
+The wifi client is set to give up after 30 seconds of trying to connect. In this case, time syncronisation is impossible, so that part of the code is bypassed.
+
+When in AP mode, the local IP for the board is `192.168.54.1`.
+
 ## Adding custom things
 
 There are [some subtle differences between C and C++]( https://community.platformio.org/t/files-in-lib-compile-but-linker-cant-find-them-resolved/10489). I got an example to run by following this structure:
