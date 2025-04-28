@@ -299,7 +299,7 @@ void connect_to_wifi_and_sync_time(void)
         we_have_accurate_time = true;
         tft->setCursor(0, cursor_position);
         // See tm structure definition: https://cplusplus.com/reference/ctime/tm/
-        tft->printf("Time synced on: %02.0f/%02.0f/%d %2.0f:%2.0f:%2.0f", (float)utc_time.tm_mday, (float)utc_time.tm_mon+1, utc_time.tm_year-100, (float)utc_time.tm_hour, (float)utc_time.tm_min, (float)utc_time.tm_sec);
+        tft->printf("Time synced on: %02.0f/%02.0f/%d %02.0f:%02.0f:%02.0f", (float)utc_time.tm_mday, (float)utc_time.tm_mon+1, utc_time.tm_year-100, (float)utc_time.tm_hour, (float)utc_time.tm_min, (float)utc_time.tm_sec);
         tft->flush();
     }
 
